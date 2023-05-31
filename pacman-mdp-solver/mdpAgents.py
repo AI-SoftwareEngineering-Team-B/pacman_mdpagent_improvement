@@ -35,6 +35,7 @@ import random
 import game
 import util
 import aStar
+import aStar
 
 class Grid:
 

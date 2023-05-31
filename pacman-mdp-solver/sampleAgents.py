@@ -154,15 +154,15 @@ class HungryAgent(Agent):
 		if Directions.STOP in legal:
 			legal.remove(Directions.STOP)
 		pacman = api.whereAmI(state) #retrieve location of pacman
-		food = api.food(state) #retrieve location of food
+		capsules = api.capsules(state) #retrieve location of food
 
 		#Distance of food
 		dist = [] # initiate list of distances
-		for i in range(len(food)):
-			dist.append(util.manhattanDistance(pacman, food[i]))
+		for i in range(len(capsules)):
+			dist.append(util.manhattanDistance(pacman, capsules[i]))
 
 		minIndex = dist.index(min(dist)) #get index of min dist value (assuming the array remains ordered)
-		closestFood = food[minIndex]
+		closestFood = capsules[minIndex]
 
 		#current position coordinates
 		x1, y1 = pacman[0], pacman[1]
