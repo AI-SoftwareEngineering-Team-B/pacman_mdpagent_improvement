@@ -34,9 +34,7 @@ import api
 import random
 import game
 import util
-import numpy as np
-from aStar import astar
-from aStar import reverse_coordinates
+import aStar
 
 class Grid:
 
@@ -577,7 +575,7 @@ class MDPAgent(Agent):
 		maxHeight = self.getLayoutHeight(corners) - 1
 
 		#230530 jjm/ get map array
-		array = np.zeros((maxHeight+1, maxWidth+1))
+		array = [[0] * (maxWidth + 1) for i in range(maxHeight + 1)]
 		for wall in walls:
 			array[wall[1]][wall[0]] = 1
 
@@ -585,15 +583,14 @@ class MDPAgent(Agent):
 		if capsules:
 			path_to_capsule = []
 			for capsule in capsules:
-				path = astar(array, pacman, capsule)
-				
+				path = aStar.astar(array, pacman, capsule)
 				if path:
 					path_to_capsule.append((len(path), path))
 			if path_to_capsule:
 				path_to_capsule.sort()
 				if len(path_to_capsule[0][1]) > 1:
 					next_step = path_to_capsule[0][1][-1]
-					next_step = reverse_coordinates(next_step)
+					next_step = aStar.reverse_coordinates(next_step)
 					dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
 					if dx != 0 and dy != 0:
 						if dx > 0:
@@ -603,7 +600,6 @@ class MDPAgent(Agent):
 
 					print('current location = %s' % (pacman,))
 					print('next location = %s' % (next_step,))
-
 
 					dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
 					if dx > 0: next_step_direction = 'East'
