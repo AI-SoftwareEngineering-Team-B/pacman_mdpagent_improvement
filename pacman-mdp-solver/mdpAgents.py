@@ -34,6 +34,7 @@ import api
 import random
 import game
 import util
+import aStar
 
 class Grid:
 
@@ -559,17 +560,80 @@ class MDPAgent(Agent):
 		# return the move with the highest MEU
 		return self.util_dict.keys()[self.util_dict.values().index(maxMEU)]
 
-	def getAction(self, state):
+	#230531 jjm/ 
+	def getNextStep(self, pacman, next_step, legal):
+		next_step = aStar.reverse_coordinates(next_step)
+		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
+		if dx != 0 and dy != 0:
+			if dx > 0:
+				next_step = (pacman[0] + 1, pacman[1])
+			else:
+				next_step = (pacman[0] - 1, pacman[1])
 
+		print('current location = %s' % (pacman,))
+		print('next location = %s' % (next_step,))
+
+		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
+		if dx > 0: next_step_direction = 'East'
+		elif dx < 0: next_step_direction = 'West'
+		elif dy > 0: next_step_direction = 'North'
+		elif dy < 0: next_step_direction = 'South'
+		else: next_step_direction = 'Stop'
+		
+		print('next direction = %s' % (next_step_direction,))
+		return api.makeMove(next_step_direction, legal)
+
+	def getAction(self, state):
 		print "-" * 30
 		legal = api.legalActions(state)
 		corners = api.corners(state)
+		pacman = api.whereAmI(state)				#230530 jjm/ for a* algorithm
+		ghosts = api.ghostStatesWithTimes(state)	#
+		capsules = api.capsules(state)				#
+		food = api.food(state)						#
+		walls = api.walls(state)					#
 
 		maxWidth = self.getLayoutWidth(corners) - 1
 		maxHeight = self.getLayoutHeight(corners) - 1
 
+		#230530 jjm/ get map array
+		array = [[0] * (maxWidth + 1) for i in range(maxHeight + 1)]
+		for wall in walls:
+			array[wall[1]][wall[0]] = 1
+
+		#230531 jjm/ if scared ghosts, use A* algorithm to ghosts
+		scaredGhosts = [ghost for ghost in ghosts if ghost[1] > 2]
+		if scaredGhosts:
+			print('Scared Ghost Detected')
+			path_to_ghost = []
+			for ghost in scaredGhosts:
+				rounded_ghost = (round(ghost[0][0]), round(ghost[0][1]))
+				path = aStar.astar(array, pacman, rounded_ghost)
+				if path:
+					path_to_ghost.append((len(path), path))
+			if path_to_ghost:
+				path_to_ghost.sort()
+				if len(path_to_ghost[0][1]) > 0:
+					return self.getNextStep(pacman, path_to_ghost[0][1][-1], legal)
+
+		#230530 jjm/ if capsules, use A* algorithm to capsules
+		elif capsules:
+			print('Capsule Detected')
+			path_to_capsule = []
+			for capsule in capsules:
+				path = aStar.astar(array, pacman, capsule)
+				if path:
+					path_to_capsule.append((len(path), path))
+			if path_to_capsule:
+				path_to_capsule.sort()
+				if len(path_to_capsule[0][1]) > 0:
+					return self.getNextStep(pacman, path_to_capsule[0][1][-1], legal)
+
+					
+		
 		# This function updates all locations at every state
 		# for every action retrieved by getAction, thi3s map is recalibrated
+		
 		valueMap = self.makeValueMap(state)
 
 		# If the map is large enough, calculate buffers around ghosts
@@ -579,7 +643,6 @@ class MDPAgent(Agent):
 			self.valueIteration(state, 0, 0.6, valueMap)
 		else:
 			self.valueIterationSmall(state, 0.2, 0.7, valueMap)
-
 		print "best move: "
 		print self.getPolicy(state, valueMap)
 
@@ -590,7 +653,6 @@ class MDPAgent(Agent):
 					self.map.setValue(i, j, valueMap[(i, j)])
 
 		self.map.prettyDisplay()
-
 
 		# If the key of the move with MEU = n_util, return North as the best decision
 		# And so on...

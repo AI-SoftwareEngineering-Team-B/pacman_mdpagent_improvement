@@ -1,4 +1,4 @@
-# Astar.py
+# aStar.py
 # 21-05-2023 / jjm
 #
 # This file is created to use the A* algorithm in the mdpAgent.py file.
@@ -10,8 +10,16 @@ def heuristic(a, b):
     (x2, y2) = b
     return abs(x1 - x2) + abs(y1 - y2)
 
+#230530 jjm/ reverse x, y
+def reverse_coordinates(coord):
+    x, y = coord
+    return y, x
+
 def astar(array, start, goal):
-    neighbors = [(0,1),(0,-1),(1,0),(-1,0),(1,1),(1,-1),(-1,1),(-1,-1)]
+    neighbors = [(0,1),(0,-1),(1,0),(-1,0)]
+
+    start = reverse_coordinates(start)
+    goal = reverse_coordinates(goal)
 
     close_set = set()
     came_from = {}
@@ -35,16 +43,11 @@ def astar(array, start, goal):
         for i, j in neighbors:
             neighbor = current[0] + i, current[1] + j            
             tentative_g_score = gscore[current] + heuristic(current, neighbor)
-            if 0 <= neighbor[0] < array.shape[0]:
-                if 0 <= neighbor[1] < array.shape[1]:                
-                    if array[neighbor[0]][neighbor[1]] == 1:
-                        continue
-                else:
-                    # array bound y walls
-                    continue
-            else:
-                # array bound x walls
+            if neighbor[0] < 0 or neighbor[0] >= len(array) or neighbor[1] < 0 or neighbor[1] >= len(array[0]):
                 continue
+            if array[neighbor[0]][neighbor[1]] == 1:
+                continue
+
                 
             if neighbor in close_set and tentative_g_score >= gscore.get(neighbor, 0):
                 continue
@@ -56,3 +59,24 @@ def astar(array, start, goal):
                 heapq.heappush(oheap, (fscore[neighbor], neighbor))
                 
     return False
+
+
+
+#230530 jjm/ testing pacman array
+array = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+         [1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1],
+         [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+         [1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1],
+         [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+         [1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1],
+         [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+         [1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1],
+         [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
+
+start = (9, 1)
+goal = (1, 9)
+
+path = astar(array, start, goal)
+print(path)
