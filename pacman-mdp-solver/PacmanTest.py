@@ -5,24 +5,39 @@
 #
 import subprocess
 
-def get_score(output):
+def get_score_and_win(output):
     lines = output.split('\n')
+    score = None
+    win = None
     for line in lines:
         if "Score: " in line:
-            return int(line.split("Score: ")[1])
-    return None
+            # Convert to float first, then to int
+            score = int(float(line.split("Score: ")[1]))
+        if "Record: " in line:
+            win = "Win" in line.split("Record: ")[1]
+    return score, win
 
-command = ["python2", "pacman.py", "-p", "MDPAgent", "-p"]
+# Change the command as needed and use it.
+# --frameTime (speed): Change the speed of game progress. default is 0.1
+# -t : Disable graphics and play the game over text
+# -q : Turn graphics off and play the game
+command = ["python2", "pacman.py", "-p", "MDPAgent", "--frameTime", "0.01"]
+# how many times to try
 runs = 10
 scores = []
+wins = 0
 
-for _ in range(runs):
+for i in range(runs):
     result = subprocess.run(command, stdout=subprocess.PIPE)
-    score = get_score(result.stdout.decode('utf-8'))
+    score, win = get_score_and_win(result.stdout.decode('utf-8'))
     if score is not None:
         scores.append(score)
+    if win:
+        wins += 1
+    print("try : ", i+1, " | score : ", scores[i], " | win : ", win)
 
 average_score = sum(scores) / len(scores) if scores else 0
 
 print("Scores: ", scores)
 print("Average Score: ", average_score)
+print("Total Wins: ", wins)
