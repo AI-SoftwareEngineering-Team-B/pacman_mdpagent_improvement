@@ -233,9 +233,9 @@ class MDPAgent(Agent):
 				ghostTime = ghostStates[j][1]
 				#Convert coordinates to int (keys are stored as int, but coordinates from API are stored as float)
 				if ((int(ghosts[j][0])), (int(ghosts[j][1]))) == i and ghostTime >= 1: #230519 jjm/ Added ghostTime
-					valueMap[i] = 500	#230520 jjm/ Changed 5 -> 500
+					valueMap[i] = 10	#230520 jjm/ Changed 5 -> 500
 				elif ((int(ghosts[j][0])), (int(ghosts[j][1]))) == i:
-					valueMap[i] = -1000	#230520 jjm/ Changed -10 -> -1000
+					valueMap[i] = -10	#230520 jjm/ Changed -10 -> -1000
 				
 
 		return valueMap
@@ -438,6 +438,7 @@ class MDPAgent(Agent):
 		# If the perpendicular directions are not walls, then multiply expected utility of those
 		# else multiply expected utility of just staying in place
 
+		#230601 jjm/ dangerDirection is ignored
 		if self.valueMap[north] != "#" and dangerDirection != 'North':
 			n_util = (self.valueMap[north])
 		else:
@@ -462,23 +463,6 @@ class MDPAgent(Agent):
 			w_util = (self.valueMap[stay])
 		self.util_dict["w_util"] = w_util
 
-		#230601 jjm/ dangerDirection is ignored
-		dangerUtilKey = None
-		if dangerDirection == 'North':
-			dangerUtilKey = 'n_util'
-		if dangerDirection == 'South':
-			dangerUtilKey = 's_util'
-		if dangerDirection == 'East':
-			dangerUtilKey = 'e_util'
-		if dangerDirection == 'West':
-			dangerUtilKey = 'w_util'
-		else:
-			dangerUtilKey = None
-
-		for i in self.util_dict:
-			if i == dangerUtilKey:
-				self.util_dict[i] = float('-inf')
-
 
 		# get max expected utility
 		maxMEU = max(self.util_dict.values())
@@ -499,11 +483,16 @@ class MDPAgent(Agent):
 		print('next location = %s' % (next_step,))
 
 		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
-		if dx > 0: next_step_direction = 'East'
-		elif dx < 0: next_step_direction = 'West'
-		elif dy > 0: next_step_direction = 'North'
-		elif dy < 0: next_step_direction = 'South'
-		else: next_step_direction = 'Stop'
+		if dx > 0: 
+			next_step_direction = 'East'
+		elif dx < 0: 
+			next_step_direction = 'West'
+		elif dy > 0: 
+			next_step_direction = 'North'
+		elif dy < 0: 
+			next_step_direction = 'South'
+		else: 
+			next_step_direction = 'Stop'
 		
 		print('next direction = %s' % (next_step_direction,))
 		return api.makeMove(next_step_direction, legal)
@@ -532,10 +521,10 @@ class MDPAgent(Agent):
 
 	def detectLoop(self, pacman):
 		self.stateHistory.append(pacman)
-		if len(self.stateHistory) < 5:
+		if len(self.stateHistory) < 6:
 			return False
 		
-		if self.stateHistory[-1] == self.stateHistory[-5]:
+		if self.stateHistory[-1] == self.stateHistory[-5] or self.stateHistory[-1] == self.stateHistory[-6]:
 			return True
 		else:
 			return False
@@ -600,8 +589,9 @@ class MDPAgent(Agent):
 				self.valueIterationSmall(state, 0.2, 0.7, valueMap)
 
 
-			print "best move: "
-			print self.getPolicy(state, valueMap, dangerDirection)
+			#print ("best move: ")
+			bestPolicy = self.getPolicy(state, valueMap, dangerDirection)
+			print('best move : %s' %bestPolicy)
 
 			# Update values in map with iterations
 			for i in range(self.map.getWidth()):
@@ -616,24 +606,20 @@ class MDPAgent(Agent):
 			# And so on...
 
 			#230601 jjm/ if loop detected, random move
-			if self.detectLoop(pacman):
+			if self.detectLoop(pacman) and dangerDirection == None:
 				print('Loop Detected')
 				return api.makeMove(self.getRandomAction(legal), legal)
-
-			
-			if self.getPolicy(state, valueMap, dangerDirection) == "n_util":
+			else:
+				if bestPolicy == "n_util":
 					return api.makeMove('North', legal)
-
-			if self.getPolicy(state, valueMap, dangerDirection) == "s_util":
+				elif bestPolicy == "s_util":
 					return api.makeMove('South', legal)
-
-			if self.getPolicy(state, valueMap, dangerDirection) == "e_util":
+				elif bestPolicy == "e_util":
 					return api.makeMove('East', legal)
-
-			if self.getPolicy(state, valueMap, dangerDirection) == "w_util":
+				elif bestPolicy == "w_util":
 					return api.makeMove('West', legal)
-				
-		
+				else:
+					return api.makeMove('Stop', legal)
 		
 		#230531 jjm/ if scared ghosts, use A* algorithm to ghosts
 		elif scaredGhosts:
@@ -661,8 +647,3 @@ class MDPAgent(Agent):
 				path_to_capsule.sort()
 				if len(path_to_capsule[0][1]) > 0:
 					return self.getNextStep(pacman, path_to_capsule[0][1][-1], legal)
-
-		
-
-		
-		
