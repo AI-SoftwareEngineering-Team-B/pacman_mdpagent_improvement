@@ -438,29 +438,47 @@ class MDPAgent(Agent):
 		# If the perpendicular directions are not walls, then multiply expected utility of those
 		# else multiply expected utility of just staying in place
 
-		if self.valueMap[north] != "#" and dangerDirection != "North":
+		if self.valueMap[north] != "#" and dangerDirection != 'North':
 			n_util = (self.valueMap[north])
 		else:
 			n_util = (self.valueMap[stay])
 		self.util_dict["n_util"] = n_util
 
-		if self.valueMap[south] != "#" and dangerDirection != "South":
+		if self.valueMap[south] != "#" and dangerDirection != 'South':
 			s_util = (self.valueMap[south])
 		else:
 			s_util = (self.valueMap[stay])
 		self.util_dict["s_util"] = s_util
 
-		if self.valueMap[east] != "#" and dangerDirection != "East":
+		if self.valueMap[east] != "#" and dangerDirection != 'East':
 			e_util = (self.valueMap[east])
 		else:
 			e_util = (self.valueMap[stay])
 		self.util_dict["e_util"] = e_util
 
-		if self.valueMap[west] != "#" and dangerDirection != "West":
+		if self.valueMap[west] != "#" and dangerDirection != 'West':
 			w_util = (self.valueMap[west])
 		else:
 			w_util = (self.valueMap[stay])
 		self.util_dict["w_util"] = w_util
+
+		#230601 jjm/ dangerDirection is ignored
+		dangerUtilKey = None
+		if dangerDirection == 'North':
+			dangerUtilKey = 'n_util'
+		if dangerDirection == 'South':
+			dangerUtilKey = 's_util'
+		if dangerDirection == 'East':
+			dangerUtilKey = 'e_util'
+		if dangerDirection == 'West':
+			dangerUtilKey = 'w_util'
+		else:
+			dangerUtilKey = None
+
+		for i in self.util_dict:
+			if i == dangerUtilKey:
+				self.util_dict[i] = float('-inf')
+
 
 		# get max expected utility
 		maxMEU = max(self.util_dict.values())
