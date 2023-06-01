@@ -605,16 +605,17 @@ class MDPAgent(Agent):
 		#230601 jjm/ detect closeGhost
 		closeGhost = False
 		normalGhosts = [ghost for ghost in ghosts if ghost[1] <= 1]
-		pathToNormalGhost = []
 		for ghost in normalGhosts:
 			roundedNormalGhost = (round(ghost[0][0]), round(ghost[0][1]))
 			path = aStar.astar(array, pacman, roundedNormalGhost)
-			if len(path) < 4:
+			if len(path) < 3:
 				closeGhost = True
 				print('Close Ghost Detected')
 
-		#230601 jjm/ use MDP if closeGhost, or not capsules, not scaredGhosts
+		#230601 jjm/ detect scaredGhost
 		scaredGhosts = [ghost for ghost in ghosts if ghost[1] > 1]
+
+		#230601 jjm/ use MDP if closeGhost, or not capsules, not scaredGhosts
 		if (not capsules and not scaredGhosts) or closeGhost:
 			
 			# This function updates all locations at every state
@@ -638,7 +639,8 @@ class MDPAgent(Agent):
 					if self.map.getValue(i, j) != "#":
 						self.map.setValue(i, j, valueMap[(i, j)])
 
-			self.map.prettyDisplay()
+			#230601 jjm/ disabled
+			#self.map.prettyDisplay()
 
 			# If the key of the move with MEU = n_util, return North as the best decision
 			# And so on...
