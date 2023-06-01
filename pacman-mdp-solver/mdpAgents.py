@@ -105,6 +105,7 @@ class MDPAgent(Agent):
 		self.foodMap = []
 		self.wallMap = []
 		self.capsuleMap = []
+		self.stateHistory = []
 
 
 	# Gets run after an MDPAgent object is created and once there is
@@ -466,7 +467,7 @@ class MDPAgent(Agent):
 		# return the move with the highest MEU
 		return self.util_dict.keys()[self.util_dict.values().index(maxMEU)]
 
-	#230531 jjm/ 
+	#230531 jjm/ A* direction decision
 	def getNextStep(self, pacman, next_step, legal):
 		next_step = aStar.reverse_coordinates(next_step)
 		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
@@ -510,6 +511,19 @@ class MDPAgent(Agent):
 		
 		print('danger direction = %s' % (next_step_direction,))
 		return next_step_direction
+
+	def detectLoop(self, pacman):
+		self.stateHistory.append(pacman)
+		if len(self.stateHistory) < 5:
+			return False
+		
+		if self.stateHistory[-1] == self.stateHistory[-5]:
+			return True
+		else:
+			return False
+		
+	def getRandomAction(self, legal):
+		return random.choice(legal)
 
 	def getAction(self, state):
 		print "-" * 30
@@ -582,6 +596,11 @@ class MDPAgent(Agent):
 
 			# If the key of the move with MEU = n_util, return North as the best decision
 			# And so on...
+
+			#230601 jjm/ if loop detected, random move
+			if self.detectLoop(pacman):
+				print('Loop Detected')
+				return api.makeMove(self.getRandomAction(legal), legal)
 
 			
 			if self.getPolicy(state, valueMap, dangerDirection) == "n_util":
