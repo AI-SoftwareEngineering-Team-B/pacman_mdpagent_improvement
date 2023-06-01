@@ -1,4 +1,4 @@
-# PacmanTest.py
+# pacmanTest.py
 # 21-05-2023 / jjm
 #
 # This file is created to easily test the changed code. 
@@ -21,9 +21,9 @@ def get_score_and_win(output):
 # --frameTime (speed): Change the speed of game progress. default is 0.1
 # -t : Disable graphics and play the game over text
 # -q : Turn graphics off and play the game
-command = ["python2", "pacman.py", "-p", "MDPAgent", "--frameTime", "0.01"]
+command = ["python2", "pacman.py", "-p", "MDPAgent", "--frameTime", "0.01", "-q"]
 # how many times to try
-runs = 10
+runs = 100
 scores = []
 wins = 0
 

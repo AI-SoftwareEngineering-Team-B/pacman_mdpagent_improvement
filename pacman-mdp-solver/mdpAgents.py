@@ -602,14 +602,68 @@ class MDPAgent(Agent):
 		for wall in walls:
 			array[wall[1]][wall[0]] = 1
 
+		#230601 jjm/ detect closeGhost
+		closeGhost = False
+		normalGhosts = [ghost for ghost in ghosts if ghost[1] <= 1]
+		pathToNormalGhost = []
+		for ghost in normalGhosts:
+			roundedNormalGhost = (round(ghost[0][0]), round(ghost[0][1]))
+			path = aStar.astar(array, pacman, roundedNormalGhost)
+			if len(path) < 4:
+				closeGhost = True
+				print('Close Ghost Detected')
+
+		#230601 jjm/ use MDP if closeGhost, or not capsules, not scaredGhosts
+		scaredGhosts = [ghost for ghost in ghosts if ghost[1] > 1]
+		if (not capsules and not scaredGhosts) or closeGhost:
+			
+			# This function updates all locations at every state
+			# for every action retrieved by getAction, thi3s map is recalibrated
+			
+			valueMap = self.makeValueMap(state)
+
+			# If the map is large enough, calculate buffers around ghosts
+			# also use higher number of iteration loops to get a more reasonable policy
+
+			if maxWidth >= 10 and maxHeight >= 10:
+				self.valueIteration(state, 0, 0.6, valueMap)
+			else:
+				self.valueIterationSmall(state, 0.2, 0.7, valueMap)
+			print "best move: "
+			print self.getPolicy(state, valueMap)
+
+			# Update values in map with iterations
+			for i in range(self.map.getWidth()):
+				for j in range(self.map.getHeight()):
+					if self.map.getValue(i, j) != "#":
+						self.map.setValue(i, j, valueMap[(i, j)])
+
+			self.map.prettyDisplay()
+
+			# If the key of the move with MEU = n_util, return North as the best decision
+			# And so on...
+
+			if self.getPolicy(state, valueMap) == "n_util":
+				return api.makeMove('North', legal)
+
+			if self.getPolicy(state, valueMap) == "s_util":
+				return api.makeMove('South', legal)
+
+			if self.getPolicy(state, valueMap) == "e_util":
+				return api.makeMove('East', legal)
+
+			if self.getPolicy(state, valueMap) == "w_util":
+				return api.makeMove('West', legal)
+				
+		
+		
 		#230531 jjm/ if scared ghosts, use A* algorithm to ghosts
-		scaredGhosts = [ghost for ghost in ghosts if ghost[1] > 2]
-		if scaredGhosts:
+		elif scaredGhosts:
 			print('Scared Ghost Detected')
 			path_to_ghost = []
 			for ghost in scaredGhosts:
-				rounded_ghost = (round(ghost[0][0]), round(ghost[0][1]))
-				path = aStar.astar(array, pacman, rounded_ghost)
+				roundedScaredGhost = (round(ghost[0][0]), round(ghost[0][1]))
+				path = aStar.astar(array, pacman, roundedScaredGhost)
 				if path:
 					path_to_ghost.append((len(path), path))
 			if path_to_ghost:
@@ -630,42 +684,7 @@ class MDPAgent(Agent):
 				if len(path_to_capsule[0][1]) > 0:
 					return self.getNextStep(pacman, path_to_capsule[0][1][-1], legal)
 
-					
 		
-		# This function updates all locations at every state
-		# for every action retrieved by getAction, thi3s map is recalibrated
+
 		
-		valueMap = self.makeValueMap(state)
-
-		# If the map is large enough, calculate buffers around ghosts
-		# also use higher number of iteration loops to get a more reasonable policy
-
-		if maxWidth >= 10 and maxHeight >= 10:
-			self.valueIteration(state, 0, 0.6, valueMap)
-		else:
-			self.valueIterationSmall(state, 0.2, 0.7, valueMap)
-		print "best move: "
-		print self.getPolicy(state, valueMap)
-
-		# Update values in map with iterations
-		for i in range(self.map.getWidth()):
-			for j in range(self.map.getHeight()):
-				if self.map.getValue(i, j) != "#":
-					self.map.setValue(i, j, valueMap[(i, j)])
-
-		self.map.prettyDisplay()
-
-		# If the key of the move with MEU = n_util, return North as the best decision
-		# And so on...
-
-		if self.getPolicy(state, valueMap) == "n_util":
-			return api.makeMove('North', legal)
-
-		if self.getPolicy(state, valueMap) == "s_util":
-			return api.makeMove('South', legal)
-
-		if self.getPolicy(state, valueMap) == "e_util":
-			return api.makeMove('East', legal)
-
-		if self.getPolicy(state, valueMap) == "w_util":
-			return api.makeMove('West', legal)
+		
