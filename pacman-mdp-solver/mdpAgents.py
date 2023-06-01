@@ -35,7 +35,6 @@ import random
 import game
 import util
 import aStar
-import aStar
 
 class Grid:
 
@@ -490,6 +489,28 @@ class MDPAgent(Agent):
 		print('next direction = %s' % (next_step_direction,))
 		return api.makeMove(next_step_direction, legal)
 
+	def getDangerDirection(self, pacman, next_step, legal):
+		next_step = aStar.reverse_coordinates(next_step)
+		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
+		if dx != 0 and dy != 0:
+			if dx > 0:
+				next_step = (pacman[0] + 1, pacman[1])
+			else:
+				next_step = (pacman[0] - 1, pacman[1])
+
+		print('current location = %s' % (pacman,))
+		print('ghost location = %s' % (next_step,))
+
+		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
+		if dx > 0: next_step_direction = 'East'
+		elif dx < 0: next_step_direction = 'West'
+		elif dy > 0: next_step_direction = 'North'
+		elif dy < 0: next_step_direction = 'South'
+		else: next_step_direction = 'Stop'
+		
+		print('danger direction = %s' % (next_step_direction,))
+		return next_step_direction
+
 	def getAction(self, state):
 		print "-" * 30
 		legal = api.legalActions(state)
@@ -497,7 +518,6 @@ class MDPAgent(Agent):
 		pacman = api.whereAmI(state)				#230530 jjm/ for a* algorithm
 		ghosts = api.ghostStatesWithTimes(state)	#
 		capsules = api.capsules(state)				#
-		food = api.food(state)						#
 		walls = api.walls(state)					#
 
 		maxWidth = self.getLayoutWidth(corners) - 1
@@ -508,14 +528,95 @@ class MDPAgent(Agent):
 		for wall in walls:
 			array[wall[1]][wall[0]] = 1
 
+		#230601 jjm/ detect closeGhost
+		closeGhost = False
+		normalGhosts = [ghost for ghost in ghosts if ghost[1] <= 1]
+		pathToNormalGhost = []
+		dangerDirection = None
+		for ghost in normalGhosts:
+			roundedNormalGhost = (round(ghost[0][0]), round(ghost[0][1]))
+			path = aStar.astar(array, pacman, roundedNormalGhost)
+			if len(path) < 3:
+				closeGhost = True
+				print('Close Ghost Detected')
+				if path:
+					pathToNormalGhost.append((len(path), path))
+			if pathToNormalGhost:
+				pathToNormalGhost.sort()
+				if len(pathToNormalGhost[0][1]) > 1:
+					dangerDirection = self.getDangerDirection(pacman, pathToNormalGhost[0][1][1], legal)
+				elif len(pathToNormalGhost[0][1]) > 0:
+					dangerDirection = self.getDangerDirection(pacman, pathToNormalGhost[0][1][0], legal)
+
+		#230601 jjm/ detect scaredGhost
+		scaredGhosts = [ghost for ghost in ghosts if ghost[1] > 1]
+
+		#230601 jjm/ use MDP if closeGhost, or not capsules, not scaredGhosts
+		if (not capsules and not scaredGhosts) or closeGhost:
+			
+			# This function updates all locations at every state
+			# for every action retrieved by getAction, thi3s map is recalibrated
+			
+			valueMap = self.makeValueMap(state)
+
+			# If the map is large enough, calculate buffers around ghosts
+			# also use higher number of iteration loops to get a more reasonable policy
+
+			if maxWidth >= 10 and maxHeight >= 10:
+				self.valueIteration(state, 0, 0.6, valueMap)
+			else:
+				self.valueIterationSmall(state, 0.2, 0.7, valueMap)
+
+
+			print "best move: "
+			print self.getPolicy(state, valueMap)
+
+			# Update values in map with iterations
+			for i in range(self.map.getWidth()):
+				for j in range(self.map.getHeight()):
+					if self.map.getValue(i, j) != "#":
+						self.map.setValue(i, j, valueMap[(i, j)])
+
+			#230601 jjm/ disabled
+			#self.map.prettyDisplay()
+
+			# If the key of the move with MEU = n_util, return North as the best decision
+			# And so on...
+
+			
+			if self.getPolicy(state, valueMap) == "n_util":
+				if dangerDirection != "North":
+					return api.makeMove('North', legal)
+				else:
+					return api.makeMove('Stop', legal)
+
+			if self.getPolicy(state, valueMap) == "s_util":
+				if dangerDirection != "South":
+					return api.makeMove('South', legal)
+				else:
+					return api.makeMove('Stop', legal)
+
+			if self.getPolicy(state, valueMap) == "e_util":
+				if dangerDirection != "East":
+					return api.makeMove('East', legal)
+				else:
+					return api.makeMove('Stop', legal)
+
+			if self.getPolicy(state, valueMap) == "w_util":
+				if dangerDirection != "West":
+					return api.makeMove('West', legal)
+				else:
+					return api.makeMove('Stop', legal)
+				
+		
+		
 		#230531 jjm/ if scared ghosts, use A* algorithm to ghosts
-		scaredGhosts = [ghost for ghost in ghosts if ghost[1] > 2]
-		if scaredGhosts:
+		elif scaredGhosts:
 			print('Scared Ghost Detected')
 			path_to_ghost = []
 			for ghost in scaredGhosts:
-				rounded_ghost = (round(ghost[0][0]), round(ghost[0][1]))
-				path = aStar.astar(array, pacman, rounded_ghost)
+				roundedScaredGhost = (round(ghost[0][0]), round(ghost[0][1]))
+				path = aStar.astar(array, pacman, roundedScaredGhost)
 				if path:
 					path_to_ghost.append((len(path), path))
 			if path_to_ghost:
@@ -536,42 +637,7 @@ class MDPAgent(Agent):
 				if len(path_to_capsule[0][1]) > 0:
 					return self.getNextStep(pacman, path_to_capsule[0][1][-1], legal)
 
-					
 		
-		# This function updates all locations at every state
-		# for every action retrieved by getAction, thi3s map is recalibrated
+
 		
-		valueMap = self.makeValueMap(state)
-
-		# If the map is large enough, calculate buffers around ghosts
-		# also use higher number of iteration loops to get a more reasonable policy
-
-		if maxWidth >= 10 and maxHeight >= 10:
-			self.valueIteration(state, 0, 0.6, valueMap)
-		else:
-			self.valueIterationSmall(state, 0.2, 0.7, valueMap)
-		print "best move: "
-		print self.getPolicy(state, valueMap)
-
-		# Update values in map with iterations
-		for i in range(self.map.getWidth()):
-			for j in range(self.map.getHeight()):
-				if self.map.getValue(i, j) != "#":
-					self.map.setValue(i, j, valueMap[(i, j)])
-
-		self.map.prettyDisplay()
-
-		# If the key of the move with MEU = n_util, return North as the best decision
-		# And so on...
-
-		if self.getPolicy(state, valueMap) == "n_util":
-			return api.makeMove('North', legal)
-
-		if self.getPolicy(state, valueMap) == "s_util":
-			return api.makeMove('South', legal)
-
-		if self.getPolicy(state, valueMap) == "e_util":
-			return api.makeMove('East', legal)
-
-		if self.getPolicy(state, valueMap) == "w_util":
-			return api.makeMove('West', legal)
+		
