@@ -403,8 +403,8 @@ class MDPAgent(Agent):
 						V1[(i, j)] = reward + gamma * self.getTransition(i, j, V)
 			loops -= 1
 
-
-	def getPolicy(self, state, iteratedMap):
+	#230601 jjm/ add dangerDirection
+	def getPolicy(self, state, iteratedMap, dangerDirection):
 		# gets movement policy for pacman's location at a given state
 		# using valueiteration map that is updated at every step
 
@@ -437,25 +437,25 @@ class MDPAgent(Agent):
 		# If the perpendicular directions are not walls, then multiply expected utility of those
 		# else multiply expected utility of just staying in place
 
-		if self.valueMap[north] != "#":
+		if self.valueMap[north] != "#" and dangerDirection != "North":
 			n_util = (self.valueMap[north])
 		else:
 			n_util = (self.valueMap[stay])
 		self.util_dict["n_util"] = n_util
 
-		if self.valueMap[south] != "#":
+		if self.valueMap[south] != "#" and dangerDirection != "South":
 			s_util = (self.valueMap[south])
 		else:
 			s_util = (self.valueMap[stay])
 		self.util_dict["s_util"] = s_util
 
-		if self.valueMap[east] != "#":
+		if self.valueMap[east] != "#" and dangerDirection != "East":
 			e_util = (self.valueMap[east])
 		else:
 			e_util = (self.valueMap[stay])
 		self.util_dict["e_util"] = e_util
 
-		if self.valueMap[west] != "#":
+		if self.valueMap[west] != "#" and dangerDirection != "West":
 			w_util = (self.valueMap[west])
 		else:
 			w_util = (self.valueMap[stay])
@@ -569,7 +569,7 @@ class MDPAgent(Agent):
 
 
 			print "best move: "
-			print self.getPolicy(state, valueMap)
+			print self.getPolicy(state, valueMap, dangerDirection)
 
 			# Update values in map with iterations
 			for i in range(self.map.getWidth()):
@@ -584,29 +584,17 @@ class MDPAgent(Agent):
 			# And so on...
 
 			
-			if self.getPolicy(state, valueMap) == "n_util":
-				if dangerDirection != "North":
+			if self.getPolicy(state, valueMap, dangerDirection) == "n_util":
 					return api.makeMove('North', legal)
-				else:
-					return api.makeMove('Stop', legal)
 
-			if self.getPolicy(state, valueMap) == "s_util":
-				if dangerDirection != "South":
+			if self.getPolicy(state, valueMap, dangerDirection) == "s_util":
 					return api.makeMove('South', legal)
-				else:
-					return api.makeMove('Stop', legal)
 
-			if self.getPolicy(state, valueMap) == "e_util":
-				if dangerDirection != "East":
+			if self.getPolicy(state, valueMap, dangerDirection) == "e_util":
 					return api.makeMove('East', legal)
-				else:
-					return api.makeMove('Stop', legal)
 
-			if self.getPolicy(state, valueMap) == "w_util":
-				if dangerDirection != "West":
+			if self.getPolicy(state, valueMap, dangerDirection) == "w_util":
 					return api.makeMove('West', legal)
-				else:
-					return api.makeMove('Stop', legal)
 				
 		
 		
