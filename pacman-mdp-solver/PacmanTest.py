@@ -23,7 +23,7 @@ def get_score_and_win(output):
 # -q : Turn graphics off and play the game
 command = ["python2", "pacman.py", "-p", "MDPAgent", "--frameTime", "0.01", "-q"]
 # how many times to try
-runs = 10
+runs = 100
 scores = []
 wins = 0
 errors = 0
