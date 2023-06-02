@@ -35,6 +35,7 @@ import random
 import game
 import util
 import aStar
+import aStar
 
 class Grid:
 
@@ -266,27 +267,37 @@ class MDPAgent(Agent):
 		# else multiply expected utility of just staying in place
 
 		if self.valueMap[north] != "#":
-			n_util = (self.valueMap[north])
+			n_util =Directions.NORTH
 		else:
-			n_util = (self.valueMap[stay])
+			n_util =Directions.STOP
+
 		self.util_dict["n_util"] = n_util
 
+
+		# Repeat for the rest of the directions
 		if self.valueMap[south] != "#":
-			s_util = (self.valueMap[south])
+			s_util = Directions.SOUTH
 		else:
-			s_util = (self.valueMap[stay])
+			s_util = Directions.STOP
+
+
 		self.util_dict["s_util"] = s_util
 
+
 		if self.valueMap[east] != "#":
-			e_util = (self.valueMap[east])
+			e_util = Directions.EAST
 		else:
-			e_util = (self.valueMap[stay])
+			e_util = Directions.STOP
+
+		
 		self.util_dict["e_util"] = e_util
 
 		if self.valueMap[west] != "#":
-			w_util = (self.valueMap[west])
+			w_util = Directions.WEST
 		else:
-			w_util = (self.valueMap[stay])
+			w_util = Directions.STOP
+
+
 		self.util_dict["w_util"] = w_util
 
 		# Take the max value in the dictionary of stored utilities
@@ -296,83 +307,6 @@ class MDPAgent(Agent):
 
 		return self.valueMap[stay]
 
-
-	def valueIteration(self, state, reward, gamma, V1):
-		# This function does valueIteration for larger maps
-		# Reward = assigned reward for every state
-		# Gamma = discount function
-		# V1 = valueMap initialised with values for every element in the map
-		# Where food = 5, ghost = -10, capsules = 5
-
-		corners = api.corners(state)
-		walls = api.walls(state)
-		food = api.food(state)
-		ghosts = api.ghosts(state)
-		capsules = api.capsules(state)
-		ghostStates = api.ghostStatesWithTimes(state) # 230520 added
-
-		#Get max width and height
-		maxWidth = self.getLayoutWidth(corners) - 1
-		maxHeight = self.getLayoutHeight(corners) - 1
-
-		# Create a list of buffer coordinates within 3 squares NSEW of ghosts to calculate
-		# value iteration around the ghosts (otherwise, food taken to be terminal value)
-		# will not have negative utilities - meaning pacman will still go for those food
-		# if a ghost is near by
-		# This does not work in small maps due to the virtue of those maps being far too small
-		# making this function redundant for them
-
-
-		
-		foodToCalculate = []
-		for i in range(3): #230520 jjm/ Changed 5 -> 3
-			for j in range(len(ghosts)):			#230520 jjm/ Add for check ghostState
-				ghostTime = ghostStates[j][1]		#
-				if (ghostTime <= 1) :				#
-					for x in range(len(ghosts)):
-						# Append coordinates 3 squares east to ghost
-						if (int(ghosts[x][0] + i), int(ghosts[x][1])) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0] + i), int(ghosts[x][1])))
-						# Append coordinates 3 squares west to ghost
-						if (int(ghosts[x][0] - i), int(ghosts[x][1])) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0] - i), int(ghosts[x][1])))
-						# Append coordinates 3 squares north to ghost
-						if (int(ghosts[x][0]), int(ghosts[x][1] + 1)) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0]), int(ghosts[x][1] + i)))
-						# Append coordinates 3 squares south to ghost
-						if (int(ghosts[x][0]), int(ghosts[x][1] - 1)) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0]), int(ghosts[x][1] - i)))
-
-
-		# A list of coordinates that should not be calculated
-		# Although it might be simple to just use foodToCalculate
-		# it does not take into account when the food is eaten or not
-		# So this list checks against available food that intersect with being outside of
-		# 5 squares of each ghost
-		doNotCalculate = []
-		for i in food:
-			if i not in foodToCalculate:
-				doNotCalculate.append(i)
-
-		# raise value error if gamma is not between 0 and 1
-		if not (0 < gamma <= 1):
-			raise ValueError("MDP must have a gamma between 0 and 1.")
-
-		# Implement Bellman equation with _-loop iteration
-		loops = 200	#230520 jjm/ Changed 100 -> ?
-		while loops > 0:
-			V = V1.copy() # This will store the old values
-			for i in range(maxWidth):
-				for j in range(maxHeight):
-					# Exclude any food because in this case it is the terminal state
-					# Except for food that are within 5 squares north/south/east/west of the ghost
-					if (i, j) not in walls and (i, j) not in doNotCalculate and (i, j) not in ghosts and (i, j) not in capsules:
-						V1[(i, j)] = reward + gamma * self.getTransition(i, j, V)
-					
-					#230520 jjm, Add panalty for not moving
-					if (i, j) == api.whereAmI(state):
-						V1[(i, j)] -= 5
-			loops -= 1
 
 	def valueIterationSmall(self, state, reward, gamma, V1):
 		# Similar to valueIteration function
@@ -404,7 +338,7 @@ class MDPAgent(Agent):
 			loops -= 1
 
 
-	def getPolicy(self, state, iteratedMap):
+	def getPolicy(self, state, valueMap):
 		# gets movement policy for pacman's location at a given state
 		# using valueiteration map that is updated at every step
 
@@ -412,7 +346,7 @@ class MDPAgent(Agent):
 
 		# put in a valueMap that has been run across valueIteration (otherwise)
 		# a proper policy would not be able to be retrieved
-		self.valueMap = iteratedMap
+		self.valueMap = valueMap
 
 		# get pacman locations
 		x = pacman[0]
@@ -438,27 +372,37 @@ class MDPAgent(Agent):
 		# else multiply expected utility of just staying in place
 
 		if self.valueMap[north] != "#":
-			n_util = (self.valueMap[north])
+    			n_util =Directions.NORTH
 		else:
-			n_util = (self.valueMap[stay])
+			n_util =Directions.STOP
+
 		self.util_dict["n_util"] = n_util
 
+
+		# Repeat for the rest of the directions
 		if self.valueMap[south] != "#":
-			s_util = (self.valueMap[south])
+			s_util = Directions.SOUTH
 		else:
-			s_util = (self.valueMap[stay])
+			s_util = Directions.STOP
+
+
 		self.util_dict["s_util"] = s_util
 
+
 		if self.valueMap[east] != "#":
-			e_util = (self.valueMap[east])
+			e_util = Directions.EAST
 		else:
-			e_util = (self.valueMap[stay])
+			e_util = Directions.STOP
+
+		
 		self.util_dict["e_util"] = e_util
 
 		if self.valueMap[west] != "#":
-			w_util = (self.valueMap[west])
+			w_util = Directions.WEST
 		else:
-			w_util = (self.valueMap[stay])
+			w_util = Directions.STOP
+
+
 		self.util_dict["w_util"] = w_util
 
 		# get max expected utility
@@ -489,28 +433,6 @@ class MDPAgent(Agent):
 		print('next direction = %s' % (next_step_direction,))
 		return api.makeMove(next_step_direction, legal)
 
-	def getDangerDirection(self, pacman, next_step, legal):
-		next_step = aStar.reverse_coordinates(next_step)
-		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
-		if dx != 0 and dy != 0:
-			if dx > 0:
-				next_step = (pacman[0] + 1, pacman[1])
-			else:
-				next_step = (pacman[0] - 1, pacman[1])
-
-		print('current location = %s' % (pacman,))
-		print('ghost location = %s' % (next_step,))
-
-		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
-		if dx > 0: next_step_direction = 'East'
-		elif dx < 0: next_step_direction = 'West'
-		elif dy > 0: next_step_direction = 'North'
-		elif dy < 0: next_step_direction = 'South'
-		else: next_step_direction = 'Stop'
-		
-		print('danger direction = %s' % (next_step_direction,))
-		return next_step_direction
-
 	def getAction(self, state):
 		print "-" * 30
 		legal = api.legalActions(state)
@@ -518,6 +440,7 @@ class MDPAgent(Agent):
 		pacman = api.whereAmI(state)				#230530 jjm/ for a* algorithm
 		ghosts = api.ghostStatesWithTimes(state)	#
 		capsules = api.capsules(state)				#
+		food = api.food(state)						#
 		walls = api.walls(state)					#
 
 		maxWidth = self.getLayoutWidth(corners) - 1
@@ -528,95 +451,14 @@ class MDPAgent(Agent):
 		for wall in walls:
 			array[wall[1]][wall[0]] = 1
 
-		#230601 jjm/ detect closeGhost
-		closeGhost = False
-		normalGhosts = [ghost for ghost in ghosts if ghost[1] <= 1]
-		pathToNormalGhost = []
-		dangerDirection = None
-		for ghost in normalGhosts:
-			roundedNormalGhost = (round(ghost[0][0]), round(ghost[0][1]))
-			path = aStar.astar(array, pacman, roundedNormalGhost)
-			if len(path) < 3:
-				closeGhost = True
-				print('Close Ghost Detected')
-				if path:
-					pathToNormalGhost.append((len(path), path))
-			if pathToNormalGhost:
-				pathToNormalGhost.sort()
-				if len(pathToNormalGhost[0][1]) > 1:
-					dangerDirection = self.getDangerDirection(pacman, pathToNormalGhost[0][1][1], legal)
-				elif len(pathToNormalGhost[0][1]) > 0:
-					dangerDirection = self.getDangerDirection(pacman, pathToNormalGhost[0][1][0], legal)
-
-		#230601 jjm/ detect scaredGhost
-		scaredGhosts = [ghost for ghost in ghosts if ghost[1] > 1]
-
-		#230601 jjm/ use MDP if closeGhost, or not capsules, not scaredGhosts
-		if (not capsules and not scaredGhosts) or closeGhost:
-			
-			# This function updates all locations at every state
-			# for every action retrieved by getAction, thi3s map is recalibrated
-			
-			valueMap = self.makeValueMap(state)
-
-			# If the map is large enough, calculate buffers around ghosts
-			# also use higher number of iteration loops to get a more reasonable policy
-
-			if maxWidth >= 10 and maxHeight >= 10:
-				self.valueIteration(state, 0, 0.6, valueMap)
-			else:
-				self.valueIterationSmall(state, 0.2, 0.7, valueMap)
-
-
-			print "best move: "
-			print self.getPolicy(state, valueMap)
-
-			# Update values in map with iterations
-			for i in range(self.map.getWidth()):
-				for j in range(self.map.getHeight()):
-					if self.map.getValue(i, j) != "#":
-						self.map.setValue(i, j, valueMap[(i, j)])
-
-			#230601 jjm/ disabled
-			#self.map.prettyDisplay()
-
-			# If the key of the move with MEU = n_util, return North as the best decision
-			# And so on...
-
-			
-			if self.getPolicy(state, valueMap) == "n_util":
-				if dangerDirection != "North":
-					return api.makeMove('North', legal)
-				else:
-					return api.makeMove('Stop', legal)
-
-			if self.getPolicy(state, valueMap) == "s_util":
-				if dangerDirection != "South":
-					return api.makeMove('South', legal)
-				else:
-					return api.makeMove('Stop', legal)
-
-			if self.getPolicy(state, valueMap) == "e_util":
-				if dangerDirection != "East":
-					return api.makeMove('East', legal)
-				else:
-					return api.makeMove('Stop', legal)
-
-			if self.getPolicy(state, valueMap) == "w_util":
-				if dangerDirection != "West":
-					return api.makeMove('West', legal)
-				else:
-					return api.makeMove('Stop', legal)
-				
-		
-		
 		#230531 jjm/ if scared ghosts, use A* algorithm to ghosts
-		elif scaredGhosts:
+		scaredGhosts = [ghost for ghost in ghosts if ghost[1] > 2]
+		if scaredGhosts:
 			print('Scared Ghost Detected')
 			path_to_ghost = []
 			for ghost in scaredGhosts:
-				roundedScaredGhost = (round(ghost[0][0]), round(ghost[0][1]))
-				path = aStar.astar(array, pacman, roundedScaredGhost)
+				rounded_ghost = (round(ghost[0][0]), round(ghost[0][1]))
+				path = aStar.astar(array, pacman, rounded_ghost)
 				if path:
 					path_to_ghost.append((len(path), path))
 			if path_to_ghost:
@@ -637,7 +479,21 @@ class MDPAgent(Agent):
 				if len(path_to_capsule[0][1]) > 0:
 					return self.getNextStep(pacman, path_to_capsule[0][1][-1], legal)
 
+					
+		
 		
 
-		
-		
+		# If the key of the move with MEU = n_util, return North as the best decision
+		# And so on...
+
+		if self.getPolicy(state, valueMap) == "n_util":
+			return Directions.NORTH
+
+		if self.getPolicy(state, valueMap) == "s_util":
+			return  Directions.SOUTH
+
+		if self.getPolicy(state, valueMap) == "e_util":
+			return  Directions.EAST
+
+		if self.getPolicy(state, valueMap) == "w_util":
+			return  Directions.WEST
