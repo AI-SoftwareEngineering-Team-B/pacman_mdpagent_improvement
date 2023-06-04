@@ -33,8 +33,13 @@ for i in range(runs):
     score, win = get_score_and_win(result.stdout.decode('utf-8'))
     if score is not None:
         scores.append(score)
+    else:
+        print('An Error Occured')
+        scores.append(0)
+        errors += 1
     if win:
         wins += 1
+
     print("try : ", i+1, " | score : ", scores[i], " | win : ", win)
 
 average_score = sum(scores) / len(scores) if scores else 0
