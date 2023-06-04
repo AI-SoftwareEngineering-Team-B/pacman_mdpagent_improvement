@@ -308,6 +308,82 @@ class MDPAgent(Agent):
 
 		return self.valueMap[stay]
 
+	def valueIteration(self, state, reward, gamma, V1):
+		# This function does valueIteration for larger maps
+		# Reward = assigned reward for every state
+		# Gamma = discount function
+		# V1 = valueMap initialised with values for every element in the map
+		# Where food = 5, ghost = -10, capsules = 5
+
+		corners = api.corners(state)
+		walls = api.walls(state)
+		food = api.food(state)
+		ghosts = api.ghosts(state)
+		capsules = api.capsules(state)
+		ghostStates = api.ghostStatesWithTimes(state) # 230520 added
+
+		#Get max width and height
+		maxWidth = self.getLayoutWidth(corners) - 1
+		maxHeight = self.getLayoutHeight(corners) - 1
+
+		# Create a list of buffer coordinates within 3 squares NSEW of ghosts to calculate
+		# value iteration around the ghosts (otherwise, food taken to be terminal value)
+		# will not have negative utilities - meaning pacman will still go for those food
+		# if a ghost is near by
+		# This does not work in small maps due to the virtue of those maps being far too small
+		# making this function redundant for them
+
+
+		
+		foodToCalculate = []
+		for i in range(3): #230520 jjm/ Changed 5 -> 3
+			for j in range(len(ghosts)):			#230520 jjm/ Add for check ghostState
+				ghostTime = ghostStates[j][1]		#
+				if (ghostTime <= 1) :				#
+					for x in range(len(ghosts)):
+						# Append coordinates 3 squares east to ghost
+						if (int(ghosts[x][0] + i), int(ghosts[x][1])) not in foodToCalculate:
+							foodToCalculate.append((int(ghosts[x][0] + i), int(ghosts[x][1])))
+						# Append coordinates 3 squares west to ghost
+						if (int(ghosts[x][0] - i), int(ghosts[x][1])) not in foodToCalculate:
+							foodToCalculate.append((int(ghosts[x][0] - i), int(ghosts[x][1])))
+						# Append coordinates 3 squares north to ghost
+						if (int(ghosts[x][0]), int(ghosts[x][1] + 1)) not in foodToCalculate:
+							foodToCalculate.append((int(ghosts[x][0]), int(ghosts[x][1] + i)))
+						# Append coordinates 3 squares south to ghost
+						if (int(ghosts[x][0]), int(ghosts[x][1] - 1)) not in foodToCalculate:
+							foodToCalculate.append((int(ghosts[x][0]), int(ghosts[x][1] - i)))
+
+
+		# A list of coordinates that should not be calculated
+		# Although it might be simple to just use foodToCalculate
+		# it does not take into account when the food is eaten or not
+		# So this list checks against available food that intersect with being outside of
+		# 5 squares of each ghost
+		doNotCalculate = []
+		for i in food:
+			if i not in foodToCalculate:
+				doNotCalculate.append(i)
+
+		# raise value error if gamma is not between 0 and 1
+		if not (0 < gamma <= 1):
+			raise ValueError("MDP must have a gamma between 0 and 1.")
+
+		# Implement Bellman equation with _-loop iteration
+		loops = 200	#230520 jjm/ Changed 100 -> ?
+		while loops > 0:
+			V = V1.copy() # This will store the old values
+			for i in range(maxWidth):
+				for j in range(maxHeight):
+					# Exclude any food because in this case it is the terminal state
+					# Except for food that are within 5 squares north/south/east/west of the ghost
+					if (i, j) not in walls and (i, j) not in doNotCalculate and (i, j) not in ghosts and (i, j) not in capsules:
+						V1[(i, j)] = reward + gamma * self.getTransition(i, j, V)
+					
+					#230520 jjm, Add panalty for not moving
+					if (i, j) == api.whereAmI(state):
+						V1[(i, j)] -= 5
+			loops -= 1
 
 	def valueIterationSmall(self, state, reward, gamma, V1):
 		# Similar to valueIteration function
