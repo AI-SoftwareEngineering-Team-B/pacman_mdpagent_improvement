@@ -532,6 +532,28 @@ class MDPAgent(Agent):
 	def getRandomAction(self, legal):
 		return random.choice(legal)
 
+	def getDangerDirection(self, pacman, next_step, legal):
+		next_step = aStar.reverse_coordinates(next_step)
+		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
+		if dx != 0 and dy != 0:
+			if dx > 0:
+				next_step = (pacman[0] + 1, pacman[1])
+			else:
+				next_step = (pacman[0] - 1, pacman[1])
+
+		print('current location = %s' % (pacman,))
+		print('ghost location = %s' % (next_step,))
+
+		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
+		if dx > 0: next_step_direction = 'East'
+		elif dx < 0: next_step_direction = 'West'
+		elif dy > 0: next_step_direction = 'North'
+		elif dy < 0: next_step_direction = 'South'
+		else: next_step_direction = 'Stop'
+		
+		print('danger direction = %s' % (next_step_direction,))
+		return next_step_direction
+
 	def getAction(self, state):
 		print "-" * 30
 		legal = api.legalActions(state)
