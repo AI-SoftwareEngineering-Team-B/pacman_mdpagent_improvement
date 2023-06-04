@@ -48,3 +48,4 @@ print("Scores: ", scores)
 print("Average Score: ", average_score)
 print("Total Wins: ", wins)
 print("Errors : ", errors)
+
