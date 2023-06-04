@@ -3,6 +3,7 @@
 #
 # This file is created to easily test the changed code. 
 #
+#
 import subprocess
 
 def get_score_and_win(output):
