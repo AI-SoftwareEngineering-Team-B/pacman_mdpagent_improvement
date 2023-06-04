@@ -35,6 +35,7 @@ import random
 import game
 import util
 import aStar
+import aStar
 
 class Grid:
 
@@ -267,27 +268,37 @@ class MDPAgent(Agent):
 		# else multiply expected utility of just staying in place
 
 		if self.valueMap[north] != "#":
-			n_util = (self.valueMap[north])
+			n_util =Directions.NORTH
 		else:
-			n_util = (self.valueMap[stay])
+			n_util =Directions.STOP
+
 		self.util_dict["n_util"] = n_util
 
+
+		# Repeat for the rest of the directions
 		if self.valueMap[south] != "#":
-			s_util = (self.valueMap[south])
+			s_util = Directions.SOUTH
 		else:
-			s_util = (self.valueMap[stay])
+			s_util = Directions.STOP
+
+
 		self.util_dict["s_util"] = s_util
 
+
 		if self.valueMap[east] != "#":
-			e_util = (self.valueMap[east])
+			e_util = Directions.EAST
 		else:
-			e_util = (self.valueMap[stay])
+			e_util = Directions.STOP
+
+		
 		self.util_dict["e_util"] = e_util
 
 		if self.valueMap[west] != "#":
-			w_util = (self.valueMap[west])
+			w_util = Directions.WEST
 		else:
-			w_util = (self.valueMap[stay])
+			w_util = Directions.STOP
+
+
 		self.util_dict["w_util"] = w_util
 
 		# Take the max value in the dictionary of stored utilities
@@ -297,83 +308,6 @@ class MDPAgent(Agent):
 
 		return self.valueMap[stay]
 
-
-	def valueIteration(self, state, reward, gamma, V1):
-		# This function does valueIteration for larger maps
-		# Reward = assigned reward for every state
-		# Gamma = discount function
-		# V1 = valueMap initialised with values for every element in the map
-		# Where food = 5, ghost = -10, capsules = 5
-
-		corners = api.corners(state)
-		walls = api.walls(state)
-		food = api.food(state)
-		ghosts = api.ghosts(state)
-		capsules = api.capsules(state)
-		ghostStates = api.ghostStatesWithTimes(state) # 230520 added
-
-		#Get max width and height
-		maxWidth = self.getLayoutWidth(corners) - 1
-		maxHeight = self.getLayoutHeight(corners) - 1
-
-		# Create a list of buffer coordinates within 3 squares NSEW of ghosts to calculate
-		# value iteration around the ghosts (otherwise, food taken to be terminal value)
-		# will not have negative utilities - meaning pacman will still go for those food
-		# if a ghost is near by
-		# This does not work in small maps due to the virtue of those maps being far too small
-		# making this function redundant for them
-
-
-		
-		foodToCalculate = []
-		for i in range(3): #230520 jjm/ Changed 5 -> 3
-			for j in range(len(ghosts)):			#230520 jjm/ Add for check ghostState
-				ghostTime = ghostStates[j][1]		#
-				if (ghostTime <= 1) :				#
-					for x in range(len(ghosts)):
-						# Append coordinates 3 squares east to ghost
-						if (int(ghosts[x][0] + i), int(ghosts[x][1])) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0] + i), int(ghosts[x][1])))
-						# Append coordinates 3 squares west to ghost
-						if (int(ghosts[x][0] - i), int(ghosts[x][1])) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0] - i), int(ghosts[x][1])))
-						# Append coordinates 3 squares north to ghost
-						if (int(ghosts[x][0]), int(ghosts[x][1] + 1)) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0]), int(ghosts[x][1] + i)))
-						# Append coordinates 3 squares south to ghost
-						if (int(ghosts[x][0]), int(ghosts[x][1] - 1)) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0]), int(ghosts[x][1] - i)))
-
-
-		# A list of coordinates that should not be calculated
-		# Although it might be simple to just use foodToCalculate
-		# it does not take into account when the food is eaten or not
-		# So this list checks against available food that intersect with being outside of
-		# 5 squares of each ghost
-		doNotCalculate = []
-		for i in food:
-			if i not in foodToCalculate:
-				doNotCalculate.append(i)
-
-		# raise value error if gamma is not between 0 and 1
-		if not (0 < gamma <= 1):
-			raise ValueError("MDP must have a gamma between 0 and 1.")
-
-		# Implement Bellman equation with _-loop iteration
-		loops = 200	#230520 jjm/ Changed 100 -> ?
-		while loops > 0:
-			V = V1.copy() # This will store the old values
-			for i in range(maxWidth):
-				for j in range(maxHeight):
-					# Exclude any food because in this case it is the terminal state
-					# Except for food that are within 5 squares north/south/east/west of the ghost
-					if (i, j) not in walls and (i, j) not in doNotCalculate and (i, j) not in ghosts and (i, j) not in capsules:
-						V1[(i, j)] = reward + gamma * self.getTransition(i, j, V)
-					
-					#230520 jjm, Add panalty for not moving
-					if (i, j) == api.whereAmI(state):
-						V1[(i, j)] -= 5
-			loops -= 1
 
 	def valueIterationSmall(self, state, reward, gamma, V1):
 		# Similar to valueIteration function
@@ -413,7 +347,7 @@ class MDPAgent(Agent):
 
 		# put in a valueMap that has been run across valueIteration (otherwise)
 		# a proper policy would not be able to be retrieved
-		self.valueMap = iteratedMap
+		self.valueMap = valueMap
 
 		# get pacman locations
 		x = pacman[0]
@@ -442,25 +376,32 @@ class MDPAgent(Agent):
 		if self.valueMap[north] != "#" and dangerDirection != 'North':
 			n_util = (self.valueMap[north])
 		else:
-			n_util = (self.valueMap[stay])
+			n_util =Directions.STOP
+
 		self.util_dict["n_util"] = n_util
 
 		if self.valueMap[south] != "#" and dangerDirection != 'South':
 			s_util = (self.valueMap[south])
 		else:
-			s_util = (self.valueMap[stay])
+			s_util = Directions.STOP
+
+
 		self.util_dict["s_util"] = s_util
 
 		if self.valueMap[east] != "#" and dangerDirection != 'East':
 			e_util = (self.valueMap[east])
 		else:
-			e_util = (self.valueMap[stay])
+			e_util = Directions.STOP
+
+		
 		self.util_dict["e_util"] = e_util
 
 		if self.valueMap[west] != "#" and dangerDirection != 'West':
 			w_util = (self.valueMap[west])
 		else:
-			w_util = (self.valueMap[stay])
+			w_util = Directions.STOP
+
+
 		self.util_dict["w_util"] = w_util
 
 
@@ -539,6 +480,7 @@ class MDPAgent(Agent):
 		pacman = api.whereAmI(state)				#230530 jjm/ for a* algorithm
 		ghosts = api.ghostStatesWithTimes(state)	#
 		capsules = api.capsules(state)				#
+		food = api.food(state)						#
 		walls = api.walls(state)					#
 
 		maxWidth = self.getLayoutWidth(corners) - 1
@@ -622,12 +564,13 @@ class MDPAgent(Agent):
 					return api.makeMove('Stop', legal)
 		
 		#230531 jjm/ if scared ghosts, use A* algorithm to ghosts
-		elif scaredGhosts:
+		scaredGhosts = [ghost for ghost in ghosts if ghost[1] > 2]
+		if scaredGhosts:
 			print('Scared Ghost Detected')
 			path_to_ghost = []
 			for ghost in scaredGhosts:
-				roundedScaredGhost = (round(ghost[0][0]), round(ghost[0][1]))
-				path = aStar.astar(array, pacman, roundedScaredGhost)
+				rounded_ghost = (round(ghost[0][0]), round(ghost[0][1]))
+				path = aStar.astar(array, pacman, rounded_ghost)
 				if path:
 					path_to_ghost.append((len(path), path))
 			if path_to_ghost:
