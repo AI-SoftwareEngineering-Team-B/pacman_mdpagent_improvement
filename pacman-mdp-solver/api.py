@@ -53,7 +53,7 @@ visibilityLimit = 5
 #
 # If nonDeterministic is True, Pacman's action model will be
 # nonDeterministic.
-nonDeterministic = True
+nonDeterministic = False
 
 # Probability that Pacman carries out the intended action:
 directionProb = 0.8

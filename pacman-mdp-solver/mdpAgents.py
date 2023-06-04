@@ -267,73 +267,36 @@ class MDPAgent(Agent):
 		# else multiply expected utility of just staying in place
 
 		if self.valueMap[north] != "#":
-			n_util = (0.8 * self.valueMap[north])
+			n_util =Directions.NORTH
 		else:
-			n_util = (0.8 * self.valueMap[stay])
-
-		if self.valueMap[east] != "#":
-			n_util += (0.1 * self.valueMap[east])
-		else:
-			n_util += (0.1 * self.valueMap[stay])
-
-		if self.valueMap[west] != "#":
-			n_util += (0.1 * self.valueMap[west])
-		else:
-			n_util += (0.1 * self.valueMap[stay])
+			n_util =Directions.STOP
 
 		self.util_dict["n_util"] = n_util
 
 
 		# Repeat for the rest of the directions
 		if self.valueMap[south] != "#":
-			s_util = (0.8 * self.valueMap[south])
+			s_util = Directions.SOUTH
 		else:
-			s_util = (0.8 * self.valueMap[stay])
+			s_util = Directions.STOP
 
-		if self.valueMap[east] != "#":
-			s_util += (0.1 * self.valueMap[east])
-		else:
-			s_util += (0.1 * self.valueMap[stay])
-
-		if self.valueMap[west] != "#":
-			s_util += (0.1 * self.valueMap[west])
-		else:
-			s_util += (0.1 * self.valueMap[stay])
 
 		self.util_dict["s_util"] = s_util
 
 
 		if self.valueMap[east] != "#":
-			e_util = (0.8 * self.valueMap[east])
+			e_util = Directions.EAST
 		else:
-			e_util = (0.8 * self.valueMap[stay])
+			e_util = Directions.STOP
 
-		if self.valueMap[north] != "#":
-			e_util += (0.1 * self.valueMap[north])
-		else:
-			e_util += (0.1 * self.valueMap[stay])
-
-		if self.valueMap[south] != "#":
-			e_util += (0.1 * self.valueMap[south])
-		else:
-			e_util += (0.1 * self.valueMap[stay])
-
+		
 		self.util_dict["e_util"] = e_util
 
 		if self.valueMap[west] != "#":
-			w_util = (0.8 * self.valueMap[west])
+			w_util = Directions.WEST
 		else:
-			w_util = (0.8 * self.valueMap[stay])
+			w_util = Directions.STOP
 
-		if self.valueMap[north] != "#":
-			w_util += (0.1 * self.valueMap[north])
-		else:
-			w_util += (0.1 * self.valueMap[stay])
-
-		if self.valueMap[south] != "#":
-			w_util += (0.1 * self.valueMap[south])
-		else:
-			w_util += (0.1 * self.valueMap[stay])
 
 		self.util_dict["w_util"] = w_util
 
@@ -344,83 +307,6 @@ class MDPAgent(Agent):
 
 		return self.valueMap[stay]
 
-
-	def valueIteration(self, state, reward, gamma, V1):
-		# This function does valueIteration for larger maps
-		# Reward = assigned reward for every state
-		# Gamma = discount function
-		# V1 = valueMap initialised with values for every element in the map
-		# Where food = 5, ghost = -10, capsules = 5
-
-		corners = api.corners(state)
-		walls = api.walls(state)
-		food = api.food(state)
-		ghosts = api.ghosts(state)
-		capsules = api.capsules(state)
-		ghostStates = api.ghostStatesWithTimes(state) # 230520 added
-
-		#Get max width and height
-		maxWidth = self.getLayoutWidth(corners) - 1
-		maxHeight = self.getLayoutHeight(corners) - 1
-
-		# Create a list of buffer coordinates within 3 squares NSEW of ghosts to calculate
-		# value iteration around the ghosts (otherwise, food taken to be terminal value)
-		# will not have negative utilities - meaning pacman will still go for those food
-		# if a ghost is near by
-		# This does not work in small maps due to the virtue of those maps being far too small
-		# making this function redundant for them
-
-
-		
-		foodToCalculate = []
-		for i in range(3): #230520 jjm/ Changed 5 -> 3
-			for j in range(len(ghosts)):			#230520 jjm/ Add for check ghostState
-				ghostTime = ghostStates[j][1]		#
-				if (ghostTime <= 1) :				#
-					for x in range(len(ghosts)):
-						# Append coordinates 3 squares east to ghost
-						if (int(ghosts[x][0] + i), int(ghosts[x][1])) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0] + i), int(ghosts[x][1])))
-						# Append coordinates 3 squares west to ghost
-						if (int(ghosts[x][0] - i), int(ghosts[x][1])) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0] - i), int(ghosts[x][1])))
-						# Append coordinates 3 squares north to ghost
-						if (int(ghosts[x][0]), int(ghosts[x][1] + 1)) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0]), int(ghosts[x][1] + i)))
-						# Append coordinates 3 squares south to ghost
-						if (int(ghosts[x][0]), int(ghosts[x][1] - 1)) not in foodToCalculate:
-							foodToCalculate.append((int(ghosts[x][0]), int(ghosts[x][1] - i)))
-
-
-		# A list of coordinates that should not be calculated
-		# Although it might be simple to just use foodToCalculate
-		# it does not take into account when the food is eaten or not
-		# So this list checks against available food that intersect with being outside of
-		# 5 squares of each ghost
-		doNotCalculate = []
-		for i in food:
-			if i not in foodToCalculate:
-				doNotCalculate.append(i)
-
-		# raise value error if gamma is not between 0 and 1
-		if not (0 < gamma <= 1):
-			raise ValueError("MDP must have a gamma between 0 and 1.")
-
-		# Implement Bellman equation with _-loop iteration
-		loops = 200	#230520 jjm/ Changed 100 -> ?
-		while loops > 0:
-			V = V1.copy() # This will store the old values
-			for i in range(maxWidth):
-				for j in range(maxHeight):
-					# Exclude any food because in this case it is the terminal state
-					# Except for food that are within 5 squares north/south/east/west of the ghost
-					if (i, j) not in walls and (i, j) not in doNotCalculate and (i, j) not in ghosts and (i, j) not in capsules:
-						V1[(i, j)] = reward + gamma * self.getTransition(i, j, V)
-					
-					#230520 jjm, Add panalty for not moving
-					if (i, j) == api.whereAmI(state):
-						V1[(i, j)] -= 5
-			loops -= 1
 
 	def valueIterationSmall(self, state, reward, gamma, V1):
 		# Similar to valueIteration function
@@ -452,7 +338,7 @@ class MDPAgent(Agent):
 			loops -= 1
 
 
-	def getPolicy(self, state, iteratedMap):
+	def getPolicy(self, state, valueMap):
 		# gets movement policy for pacman's location at a given state
 		# using valueiteration map that is updated at every step
 
@@ -460,7 +346,7 @@ class MDPAgent(Agent):
 
 		# put in a valueMap that has been run across valueIteration (otherwise)
 		# a proper policy would not be able to be retrieved
-		self.valueMap = iteratedMap
+		self.valueMap = valueMap
 
 		# get pacman locations
 		x = pacman[0]
@@ -486,73 +372,36 @@ class MDPAgent(Agent):
 		# else multiply expected utility of just staying in place
 
 		if self.valueMap[north] != "#":
-			n_util = (0.8 * self.valueMap[north])
+    			n_util =Directions.NORTH
 		else:
-			n_util = (0.8 * self.valueMap[stay])
-
-		if self.valueMap[east] != "#":
-			n_util += (0.1 * self.valueMap[east])
-		else:
-			n_util += (0.1 * self.valueMap[stay])
-
-		if self.valueMap[west] != "#":
-			n_util += (0.1 * self.valueMap[west])
-		else:
-			n_util += (0.1 * self.valueMap[stay])
+			n_util =Directions.STOP
 
 		self.util_dict["n_util"] = n_util
 
 
 		# Repeat for the rest of the directions
 		if self.valueMap[south] != "#":
-			s_util = (0.8 * self.valueMap[south])
+			s_util = Directions.SOUTH
 		else:
-			s_util = (0.8 * self.valueMap[stay])
+			s_util = Directions.STOP
 
-		if self.valueMap[east] != "#":
-			s_util += (0.1 * self.valueMap[east])
-		else:
-			s_util += (0.1 * self.valueMap[stay])
-
-		if self.valueMap[west] != "#":
-			s_util += (0.1 * self.valueMap[west])
-		else:
-			s_util += (0.1 * self.valueMap[stay])
 
 		self.util_dict["s_util"] = s_util
 
 
 		if self.valueMap[east] != "#":
-			e_util = (0.8 * self.valueMap[east])
+			e_util = Directions.EAST
 		else:
-			e_util = (0.8 * self.valueMap[stay])
+			e_util = Directions.STOP
 
-		if self.valueMap[north] != "#":
-			e_util += (0.1 * self.valueMap[north])
-		else:
-			e_util += (0.1 * self.valueMap[stay])
-
-		if self.valueMap[south] != "#":
-			e_util += (0.1 * self.valueMap[south])
-		else:
-			e_util += (0.1 * self.valueMap[stay])
-
+		
 		self.util_dict["e_util"] = e_util
 
 		if self.valueMap[west] != "#":
-			w_util = (0.8 * self.valueMap[west])
+			w_util = Directions.WEST
 		else:
-			w_util = (0.8 * self.valueMap[stay])
+			w_util = Directions.STOP
 
-		if self.valueMap[north] != "#":
-			w_util += (0.1 * self.valueMap[north])
-		else:
-			w_util += (0.1 * self.valueMap[stay])
-
-		if self.valueMap[south] != "#":
-			w_util += (0.1 * self.valueMap[south])
-		else:
-			w_util += (0.1 * self.valueMap[stay])
 
 		self.util_dict["w_util"] = w_util
 
@@ -632,40 +481,19 @@ class MDPAgent(Agent):
 
 					
 		
-		# This function updates all locations at every state
-		# for every action retrieved by getAction, thi3s map is recalibrated
 		
-		valueMap = self.makeValueMap(state)
-
-		# If the map is large enough, calculate buffers around ghosts
-		# also use higher number of iteration loops to get a more reasonable policy
-
-		if maxWidth >= 10 and maxHeight >= 10:
-			self.valueIteration(state, 0, 0.6, valueMap)
-		else:
-			self.valueIterationSmall(state, 0.2, 0.7, valueMap)
-		print "best move: "
-		print self.getPolicy(state, valueMap)
-
-		# Update values in map with iterations
-		for i in range(self.map.getWidth()):
-			for j in range(self.map.getHeight()):
-				if self.map.getValue(i, j) != "#":
-					self.map.setValue(i, j, valueMap[(i, j)])
-
-		self.map.prettyDisplay()
 
 		# If the key of the move with MEU = n_util, return North as the best decision
 		# And so on...
 
 		if self.getPolicy(state, valueMap) == "n_util":
-			return api.makeMove('North', legal)
+			return Directions.NORTH
 
 		if self.getPolicy(state, valueMap) == "s_util":
-			return api.makeMove('South', legal)
+			return  Directions.SOUTH
 
 		if self.getPolicy(state, valueMap) == "e_util":
-			return api.makeMove('East', legal)
+			return  Directions.EAST
 
 		if self.getPolicy(state, valueMap) == "w_util":
-			return api.makeMove('West', legal)
+			return  Directions.WEST
