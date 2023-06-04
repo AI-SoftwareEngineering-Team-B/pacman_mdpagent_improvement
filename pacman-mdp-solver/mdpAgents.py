@@ -35,7 +35,6 @@ import random
 import game
 import util
 import aStar
-import aStar
 
 class Grid:
 
@@ -268,37 +267,27 @@ class MDPAgent(Agent):
 		# else multiply expected utility of just staying in place
 
 		if self.valueMap[north] != "#":
-			n_util =Directions.NORTH
+			n_util = (self.valueMap[north])
 		else:
-			n_util =Directions.STOP
-
+			n_util = (self.valueMap[stay])
 		self.util_dict["n_util"] = n_util
 
-
-		# Repeat for the rest of the directions
 		if self.valueMap[south] != "#":
-			s_util = Directions.SOUTH
+			s_util = (self.valueMap[south])
 		else:
-			s_util = Directions.STOP
-
-
+			s_util = (self.valueMap[stay])
 		self.util_dict["s_util"] = s_util
 
-
 		if self.valueMap[east] != "#":
-			e_util = Directions.EAST
+			e_util = (self.valueMap[east])
 		else:
-			e_util = Directions.STOP
-
-		
+			e_util = (self.valueMap[stay])
 		self.util_dict["e_util"] = e_util
 
 		if self.valueMap[west] != "#":
-			w_util = Directions.WEST
+			w_util = (self.valueMap[west])
 		else:
-			w_util = Directions.STOP
-
-
+			w_util = (self.valueMap[stay])
 		self.util_dict["w_util"] = w_util
 
 		# Take the max value in the dictionary of stored utilities
@@ -307,6 +296,7 @@ class MDPAgent(Agent):
 		self.valueMap[stay] = max(self.util_dict.values())
 
 		return self.valueMap[stay]
+
 
 	def valueIteration(self, state, reward, gamma, V1):
 		# This function does valueIteration for larger maps
@@ -423,7 +413,7 @@ class MDPAgent(Agent):
 
 		# put in a valueMap that has been run across valueIteration (otherwise)
 		# a proper policy would not be able to be retrieved
-		self.valueMap = valueMap
+		self.valueMap = iteratedMap
 
 		# get pacman locations
 		x = pacman[0]
@@ -452,32 +442,25 @@ class MDPAgent(Agent):
 		if self.valueMap[north] != "#" and dangerDirection != 'North':
 			n_util = (self.valueMap[north])
 		else:
-			n_util =Directions.STOP
-
+			n_util = (self.valueMap[stay])
 		self.util_dict["n_util"] = n_util
 
 		if self.valueMap[south] != "#" and dangerDirection != 'South':
 			s_util = (self.valueMap[south])
 		else:
-			s_util = Directions.STOP
-
-
+			s_util = (self.valueMap[stay])
 		self.util_dict["s_util"] = s_util
 
 		if self.valueMap[east] != "#" and dangerDirection != 'East':
 			e_util = (self.valueMap[east])
 		else:
-			e_util = Directions.STOP
-
-		
+			e_util = (self.valueMap[stay])
 		self.util_dict["e_util"] = e_util
 
 		if self.valueMap[west] != "#" and dangerDirection != 'West':
 			w_util = (self.valueMap[west])
 		else:
-			w_util = Directions.STOP
-
-
+			w_util = (self.valueMap[stay])
 		self.util_dict["w_util"] = w_util
 
 
@@ -556,7 +539,6 @@ class MDPAgent(Agent):
 		pacman = api.whereAmI(state)				#230530 jjm/ for a* algorithm
 		ghosts = api.ghostStatesWithTimes(state)	#
 		capsules = api.capsules(state)				#
-		food = api.food(state)						#
 		walls = api.walls(state)					#
 
 		maxWidth = self.getLayoutWidth(corners) - 1
@@ -640,13 +622,12 @@ class MDPAgent(Agent):
 					return api.makeMove('Stop', legal)
 		
 		#230531 jjm/ if scared ghosts, use A* algorithm to ghosts
-		scaredGhosts = [ghost for ghost in ghosts if ghost[1] > 2]
-		if scaredGhosts:
+		elif scaredGhosts:
 			print('Scared Ghost Detected')
 			path_to_ghost = []
 			for ghost in scaredGhosts:
-				rounded_ghost = (round(ghost[0][0]), round(ghost[0][1]))
-				path = aStar.astar(array, pacman, rounded_ghost)
+				roundedScaredGhost = (round(ghost[0][0]), round(ghost[0][1]))
+				path = aStar.astar(array, pacman, roundedScaredGhost)
 				if path:
 					path_to_ghost.append((len(path), path))
 			if path_to_ghost:
