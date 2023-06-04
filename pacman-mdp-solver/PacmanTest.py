@@ -26,14 +26,20 @@ command = ["python2", "pacman.py", "-p", "MDPAgent", "--frameTime", "0.01", "-q"
 runs = 100
 scores = []
 wins = 0
+errors = 0
 
 for i in range(runs):
     result = subprocess.run(command, stdout=subprocess.PIPE)
     score, win = get_score_and_win(result.stdout.decode('utf-8'))
     if score is not None:
         scores.append(score)
+    else:
+        print('An Error Occured')
+        scores.append(0)
+        errors += 1
     if win:
         wins += 1
+
     print("try : ", i+1, " | score : ", scores[i], " | win : ", win)
 
 average_score = sum(scores) / len(scores) if scores else 0
