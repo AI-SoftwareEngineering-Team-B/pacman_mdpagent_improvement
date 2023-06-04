@@ -41,3 +41,4 @@ average_score = sum(scores) / len(scores) if scores else 0
 print("Scores: ", scores)
 print("Average Score: ", average_score)
 print("Total Wins: ", wins)
+print("Errors : ", errors)
