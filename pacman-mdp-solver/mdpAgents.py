@@ -105,7 +105,6 @@ class MDPAgent(Agent):
 		self.foodMap = []
 		self.wallMap = []
 		self.capsuleMap = []
-		self.stateHistory = []
 
 
 	# Gets run after an MDPAgent object is created and once there is
@@ -233,9 +232,9 @@ class MDPAgent(Agent):
 				ghostTime = ghostStates[j][1]
 				#Convert coordinates to int (keys are stored as int, but coordinates from API are stored as float)
 				if ((int(ghosts[j][0])), (int(ghosts[j][1]))) == i and ghostTime >= 1: #230519 jjm/ Added ghostTime
-					valueMap[i] = 10	#230520 jjm/ Changed 5 -> 500
+					valueMap[i] = 500	#230520 jjm/ Changed 5 -> 500
 				elif ((int(ghosts[j][0])), (int(ghosts[j][1]))) == i:
-					valueMap[i] = -10	#230520 jjm/ Changed -10 -> -1000
+					valueMap[i] = -1000	#230520 jjm/ Changed -10 -> -1000
 				
 
 		return valueMap
@@ -404,8 +403,8 @@ class MDPAgent(Agent):
 						V1[(i, j)] = reward + gamma * self.getTransition(i, j, V)
 			loops -= 1
 
-	#230601 jjm/ add dangerDirection
-	def getPolicy(self, state, iteratedMap, dangerDirection):
+
+	def getPolicy(self, state, valueMap):
 		# gets movement policy for pacman's location at a given state
 		# using valueiteration map that is updated at every step
 
@@ -438,38 +437,39 @@ class MDPAgent(Agent):
 		# If the perpendicular directions are not walls, then multiply expected utility of those
 		# else multiply expected utility of just staying in place
 
-		#230601 jjm/ dangerDirection is ignored
-		if self.valueMap[north] != "#" and dangerDirection != 'North':
-			n_util = (self.valueMap[north])
+		if self.valueMap[north] != "#":
+    			n_util =Directions.NORTH
 		else:
 			n_util = (self.valueMap[stay])
 		self.util_dict["n_util"] = n_util
 
-		if self.valueMap[south] != "#" and dangerDirection != 'South':
-			s_util = (self.valueMap[south])
+
+		# Repeat for the rest of the directions
+		if self.valueMap[south] != "#":
+			s_util = Directions.SOUTH
 		else:
 			s_util = (self.valueMap[stay])
 		self.util_dict["s_util"] = s_util
 
-		if self.valueMap[east] != "#" and dangerDirection != 'East':
-			e_util = (self.valueMap[east])
+
+		if self.valueMap[east] != "#":
+			e_util = Directions.EAST
 		else:
 			e_util = (self.valueMap[stay])
 		self.util_dict["e_util"] = e_util
 
-		if self.valueMap[west] != "#" and dangerDirection != 'West':
-			w_util = (self.valueMap[west])
+		if self.valueMap[west] != "#":
+			w_util = Directions.WEST
 		else:
 			w_util = (self.valueMap[stay])
 		self.util_dict["w_util"] = w_util
-
 
 		# get max expected utility
 		maxMEU = max(self.util_dict.values())
 		# return the move with the highest MEU
 		return self.util_dict.keys()[self.util_dict.values().index(maxMEU)]
 
-	#230531 jjm/ A* direction decision
+	#230531 jjm/ 
 	def getNextStep(self, pacman, next_step, legal):
 		next_step = aStar.reverse_coordinates(next_step)
 		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
@@ -481,33 +481,6 @@ class MDPAgent(Agent):
 
 		print('current location = %s' % (pacman,))
 		print('next location = %s' % (next_step,))
-
-		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
-		if dx > 0: 
-			next_step_direction = 'East'
-		elif dx < 0: 
-			next_step_direction = 'West'
-		elif dy > 0: 
-			next_step_direction = 'North'
-		elif dy < 0: 
-			next_step_direction = 'South'
-		else: 
-			next_step_direction = 'Stop'
-		
-		print('next direction = %s' % (next_step_direction,))
-		return api.makeMove(next_step_direction, legal)
-
-	def getDangerDirection(self, pacman, next_step, legal):
-		next_step = aStar.reverse_coordinates(next_step)
-		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
-		if dx != 0 and dy != 0:
-			if dx > 0:
-				next_step = (pacman[0] + 1, pacman[1])
-			else:
-				next_step = (pacman[0] - 1, pacman[1])
-
-		print('current location = %s' % (pacman,))
-		print('ghost location = %s' % (next_step,))
 
 		dx, dy = next_step[0] - pacman[0], next_step[1] - pacman[1]
 		if dx > 0: next_step_direction = 'East'
@@ -571,78 +544,6 @@ class MDPAgent(Agent):
 		for wall in walls:
 			array[wall[1]][wall[0]] = 1
 
-		#230601 jjm/ detect closeGhost
-		closeGhost = False
-		normalGhosts = [ghost for ghost in ghosts if ghost[1] <= 1]
-		pathToNormalGhost = []
-		dangerDirection = None
-		for ghost in normalGhosts:
-			roundedNormalGhost = (round(ghost[0][0]), round(ghost[0][1]))
-			path = aStar.astar(array, pacman, roundedNormalGhost)
-			if len(path) < 3:
-				closeGhost = True
-				print('Close Ghost Detected')
-				if path:
-					pathToNormalGhost.append((len(path), path))
-			if pathToNormalGhost:
-				pathToNormalGhost.sort()
-				if len(pathToNormalGhost[0][1]) > 1:
-					dangerDirection = self.getDangerDirection(pacman, pathToNormalGhost[0][1][1], legal)
-				elif len(pathToNormalGhost[0][1]) > 0:
-					dangerDirection = self.getDangerDirection(pacman, pathToNormalGhost[0][1][0], legal)
-
-		#230601 jjm/ detect scaredGhost
-		scaredGhosts = [ghost for ghost in ghosts if ghost[1] > 1]
-
-		#230601 jjm/ use MDP if closeGhost, or not capsules, not scaredGhosts
-		if (not capsules and not scaredGhosts) or closeGhost:
-			
-			# This function updates all locations at every state
-			# for every action retrieved by getAction, thi3s map is recalibrated
-			
-			valueMap = self.makeValueMap(state)
-
-			# If the map is large enough, calculate buffers around ghosts
-			# also use higher number of iteration loops to get a more reasonable policy
-
-			if maxWidth >= 10 and maxHeight >= 10:
-				self.valueIteration(state, 0, 0.6, valueMap)
-			else:
-				self.valueIterationSmall(state, 0.2, 0.7, valueMap)
-
-
-			#print ("best move: ")
-			bestPolicy = self.getPolicy(state, valueMap, dangerDirection)
-			print('best move : %s' %bestPolicy)
-
-			# Update values in map with iterations
-			for i in range(self.map.getWidth()):
-				for j in range(self.map.getHeight()):
-					if self.map.getValue(i, j) != "#":
-						self.map.setValue(i, j, valueMap[(i, j)])
-
-			#230601 jjm/ disabled
-			#self.map.prettyDisplay()
-
-			# If the key of the move with MEU = n_util, return North as the best decision
-			# And so on...
-
-			#230601 jjm/ if loop detected, random move
-			if self.detectLoop(pacman) and dangerDirection == None:
-				print('Loop Detected')
-				return api.makeMove(self.getRandomAction(legal), legal)
-			else:
-				if bestPolicy == "n_util":
-					return api.makeMove('North', legal)
-				elif bestPolicy == "s_util":
-					return api.makeMove('South', legal)
-				elif bestPolicy == "e_util":
-					return api.makeMove('East', legal)
-				elif bestPolicy == "w_util":
-					return api.makeMove('West', legal)
-				else:
-					return api.makeMove('Stop', legal)
-		
 		#230531 jjm/ if scared ghosts, use A* algorithm to ghosts
 		elif scaredGhosts:
 			print('Scared Ghost Detected')
