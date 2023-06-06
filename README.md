@@ -1,11 +1,11 @@
 # MDP solver for Pacman<br>
 <br>
-1) 프로젝트 목표 <br>
-    UC 버클리의 인공지능 예제인 팩맨 프로젝트를 기반으로<br>
-    Pacman의 환경을 이해하고<br>
-    K-Scrum 개발 프로세스를 적용하여<br>
-    다양한 강화학습 알고리즘으로 Pacman을 학습시켜<br>
-    가장 좋은 성능을 내는 프로젝트입니다.<br>
+1)&nbsp;프로젝트 목표 <br>
+&nbsp;&nbsp;&nbsp;&nbsp;UC 버클리의 인공지능 예제인 팩맨 프로젝트를 기반으로<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Pacman의 환경을 이해하고<br>
+&nbsp;&nbsp;&nbsp;&nbsp;K-Scrum 개발 프로세스를 적용하여<br>
+&nbsp;&nbsp;&nbsp;&nbsp;다양한 강화학습 알고리즘으로 Pacman을 학습시켜<br>
+&nbsp;&nbsp;&nbsp;&nbsp;가장 좋은 성능을 내는 프로젝트입니다.<br>
 <br>
 2) 게임 규칙
   Pacman Game<br>
