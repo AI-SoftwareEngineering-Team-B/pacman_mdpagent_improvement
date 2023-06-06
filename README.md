@@ -11,6 +11,6 @@ Pacman Game<br>
 • Pacman을 조종하여 Ghost들을 피해서 화면에 있는 Food들을 다 먹는 것<br>
 • Capsule(커다란 점)를 먹으면 일정 시간 동안 파워업하여 주눅든 Ghost를 역으로 잡아먹을 수 있음<br>
 ![image](https://user-images.githubusercontent.com/95209060/235901640-8b4e5d10-e93e-4d2b-87ec-37dbe3dac4de.png)
-
-실행방법 
+<br>
+실행방법 <br>
 터미널창에서 수행 > pacman-mdp-solver 파일로 내려가 python2 pacman.py -p MDPAgent 명령어 입력
